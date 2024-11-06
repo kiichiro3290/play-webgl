@@ -1,5 +1,7 @@
-import fsSource from './wave.glsl?raw';
 import vsSource from './vertex.glsl?raw';
+import fsSource from './fragment.glsl?raw';
+import { initBuffers } from "./init-buffers.js";
+import { drawScene } from "./draw-scene.js";
 
 main();
 
@@ -7,49 +9,67 @@ main();
 // start here
 //
 function main() {
-    // WebGLコンテキストを取得
-    const canvas = document.querySelector('canvas');
-    const gl = canvas.getContext('webgl');
+  const canvas = document.querySelector("#glcanvas");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  // Initialize the GL context
+  const gl = canvas.getContext("webgl");
 
-    // シェーダーの初期化やプログラムの作成など、通常のWebGLのセットアップ
-    const shaderProgram = initShaderProgram(gl, fsSource, vsSource);
+  // Only continue if WebGL is available and working
+  if (gl === null) {
+    alert(
+      "Unable to initialize WebGL. Your browser or machine may not support it."
+    );
+    return;
+  }
 
-    // シェーダーで使用する uniform 変数のロケーションを取得
-    const timeUniformLocation = gl.getUniformLocation(shaderProgram, 'u_time');
+  // Set clear color to black, fully opaque
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  // Clear the color buffer with specified clear color
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // 時間の開始点を取得
-    let startTime = performance.now();
+  // Initialize a shader program; this is where all the lighting
+  // for the vertices and so forth is established.
+  const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
 
-    // 描画ループ
-    function render() {
-        // 現在の時間を取得（秒単位にするために1000で割る）
-        let currentTime = (performance.now() - startTime) / 1000;
+  // Collect all the info needed to use the shader program.
+  // Look up which attribute our shader program is using
+  // for aVertexPosition and look up uniform locations.
+  const programInfo = {
+    program: shaderProgram,
+    attribLocations: {
+      vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+      vertexColor: gl.getAttribLocation(shaderProgram, "aVertexColor"),
+    },
+    uniformLocations: {
+      projectionMatrix: gl.getUniformLocation(
+        shaderProgram,
+        "uProjectionMatrix"
+      ),
+      modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
+    },
+  };
 
-        // シェーダーに時間を送る
-        gl.uniform1f(timeUniformLocation, currentTime);
+  // Here's where we call the routine that builds all the
+  // objects we'll be drawing.
+  const buffers = initBuffers(gl);
 
-        // ここで通常の描画処理を行う
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);  // 例として三角形を描画
-
-        // 次のフレームを要求
-        requestAnimationFrame(render);
-    }
-
-    // 描画を開始
-    render();
+  // Draw the scene
+  drawScene(gl, programInfo, buffers);
 }
 
 //
 // Initialize a shader program, so WebGL knows how to draw our data
 //
-function initShaderProgram(gl, fsSource, vsSource) {
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+function initShaderProgram(gl, vsSource, fsSource) {
   const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+  // Create the shader program
 
   const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, fragmentShader);
   gl.attachShader(shaderProgram, vertexShader);
+  gl.attachShader(shaderProgram, fragmentShader);
   gl.linkProgram(shaderProgram);
 
   // If creating the shader program failed, alert

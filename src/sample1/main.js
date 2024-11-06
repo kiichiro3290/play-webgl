@@ -1,8 +1,5 @@
 main();
 
-//
-// ここから開始
-//
 function main() {
   const canvas = document.querySelector("#glcanvas");
   // GL コンテキストを初期化

@@ -1,13 +1,12 @@
-// 頂点シェーダー
-attribute vec4 a_position;  // 頂点の座標
-attribute vec2 a_texCoord;  // テクスチャ座標（頂点に対応する）
+attribute vec4 aVertexPosition;
+attribute vec4 aVertexColor;
 
-varying vec2 v_texCoord;    // フラグメントシェーダーに渡すための変数
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
 
-void main() {
-    // 頂点位置の設定
-    gl_Position = a_position;
+varying lowp vec4 vColor;
 
-    // テクスチャ座標を varying 変数にコピーしてフラグメントシェーダーに渡す
-    v_texCoord = a_texCoord;
+void main(void) {
+    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+    vColor = aVertexColor;
 }
